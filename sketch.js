@@ -6,6 +6,13 @@ let currentLabel = "Waiting for classification...";
 let currentConfidence = 0;
 let video;
 let currentRecord = null;
+// Memory system
+let history = [];             // remembered results
+let lastRecordedKey = "";     // last category remembered
+let lastRecordTime = 0;       // when it was remembered (ms)
+const MAX_MEMORIES = 60;      // cap so it doesn't slow down
+const MIN_CONFIDENCE = 0.25;  // ignore very unsure guesses
+const COOLDOWN_MS = 1500;     // at most one memory every 1.5s
 
 
 function preload() {
@@ -30,6 +37,8 @@ function setup() {
   video.hide();
   classifier = ml5.imageClassifier("MobileNet", { flipped: true });
   classifier.classifyStart(video, gotResults);
+  let btn = createButton("Clear memory");
+  btn.mousePressed(function () { history = []; });
 }
 
 function normalizeLabel(labelText) {
@@ -94,6 +103,7 @@ function findMapping(modelLabel) {
 
 function draw() {
   image(video, 0, 0, width, height);
+  drawMemories();
   drawMainEmoji();
   drawPanel();
 }
@@ -128,6 +138,8 @@ function drawPanel() {
   fill(255, 200, 120); text("SKETCH SAYS", 40, 185);
   fill(255); textSize(28);
   text(currentRecord ? currentRecord.emoji : "❓", 40, 205);
+    textSize(14); fill(200);
+  text("Memories: " + history.length + "  (press C to clear)", 300, 215);
 }
 
 // Visual response: confidence controls size and steadiness
@@ -153,4 +165,54 @@ function gotResults(results) {
   currentLabel = results[0].label;
   currentConfidence = results[0].confidence;
   currentRecord = findMapping(currentLabel);
+  maybeRemember();
+}
+// Decide whether the current result should be remembered
+function maybeRemember() {
+  if (currentConfidence < MIN_CONFIDENCE) return;
+  let key = currentRecord ? currentRecord.workshopCategory : "unknown";
+  let now = millis();
+  if (now - lastRecordTime < COOLDOWN_MS) return;
+  if (key === lastRecordedKey && now - lastRecordTime < 5000) return;
+
+  history.push({
+    emoji: currentRecord ? currentRecord.emoji : "❓",
+    matched: currentRecord !== null,
+    confidence: currentConfidence,
+    x: width / 2, y: height / 2,
+    vx: random(-3, 3), vy: random(-3, 3),
+    age: 0
+  });
+  if (history.length > MAX_MEMORIES) history.shift();
+  lastRecordedKey = key;
+  lastRecordTime = now;
+}
+
+// Draw remembered emojis as drifting, fading particles
+function drawMemories() {
+  for (let i = history.length - 1; i >= 0; i--) {
+    let m = history[i];
+    m.age++;
+    m.x += m.vx; m.y += m.vy;
+    m.vx *= 0.98; m.vy *= 0.98;
+    m.y += sin(frameCount * 0.02 + i) * 0.3;
+    if (m.x < 0 || m.x > width) m.vx *= -1;
+    if (m.y < 0 || m.y > height) m.vy *= -1;
+
+    if (m.age > 2400) { history.splice(i, 1); continue; }
+    let alpha = map(m.age, 0, 1800, 1, 0.1, true);
+
+    push();
+    drawingContext.globalAlpha = alpha;
+    textAlign(CENTER, CENTER);
+    textSize(map(m.confidence, 0, 1, 24, 90));
+    text(m.emoji, m.x, m.y);
+    if (!m.matched) { noFill(); stroke(255, 80, 80); circle(m.x, m.y, 50); }
+    pop();
+  }
+}
+
+// Press C to clear memory
+function keyPressed() {
+  if (key === "c" || key === "C") history = [];
 }
