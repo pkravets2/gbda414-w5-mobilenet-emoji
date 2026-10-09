@@ -3,7 +3,7 @@ let currentLabel = "Waiting for classification...";
 let currentConfidence = 0;
 let video;
 
-function setup() {}
+function setup() {
   createCanvas(960, 720);
   video = createCapture(VIDEO, { flipped: true });
   video.size(width, height);
@@ -12,7 +12,7 @@ function setup() {}
   classifier.classifyStart(video, gotResults);
 }
 
-function draw() {}
+function draw() {
  image(video, 0, 0, width, height);
   fill(0, 190); noStroke(); rect(20, 20, 600, 90, 12);
   fill(255); textSize(18); textAlign(LEFT, TOP);
