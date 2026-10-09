@@ -5,6 +5,7 @@ let classifier;
 let currentLabel = "Waiting for classification...";
 let currentConfidence = 0;
 let video;
+let currentRecord = null;
 
 
 function preload() {
