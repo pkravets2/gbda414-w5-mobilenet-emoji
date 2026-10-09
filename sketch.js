@@ -93,8 +93,8 @@ function findMapping(modelLabel) {
 }
 
 function draw() {
- image(video, 0, 0, width, height);
-  fill(0, 190); noStroke(); rect(20, 20, 600, 130, 12);
+  image(video, 0, 0, width, height);
+  fill(0, 190); noStroke(); rect(20, 20, 600, 170, 12);
   fill(255); textSize(18); textAlign(LEFT, TOP);
   text("Model label: " + currentLabel, 40, 40);
   text("Confidence: " + nf(currentConfidence * 100, 2, 1) + "%", 40, 70);
