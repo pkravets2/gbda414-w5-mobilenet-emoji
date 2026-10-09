@@ -94,21 +94,58 @@ function findMapping(modelLabel) {
 
 function draw() {
   image(video, 0, 0, width, height);
-  fill(0, 190); noStroke(); rect(20, 20, 600, 170, 12);
-  fill(255); textSize(18); textAlign(LEFT, TOP);
-  text("Model label: " + currentLabel, 40, 40);
-  text("Confidence: " + nf(currentConfidence * 100, 2, 1) + "%", 40, 70);
-  if (jsonError) text("JSON: failed to load", 40, 100);
-  else if (!jsonLoaded) text("JSON: loading...", 40, 100);
-  else text("JSON records loaded: " + mappings.length, 40, 100);
+  drawMainEmoji();
+  drawPanel();
+}
 
-  if (currentRecord) {
+// Info panel: shows the three layers of translation separately
+function drawPanel() {
+  fill(0, 190); noStroke(); rect(20, 20, 620, 230, 12);
+  textAlign(LEFT, TOP); textSize(16);
+
+  // Layer 1: what the model predicted
+  fill(150, 200, 255); text("MODEL SAYS", 40, 35);
+  fill(255);
+  text("Label: " + currentLabel, 40, 57);
+  text("Confidence: " + nf(currentConfidence * 100, 2, 1) + "%", 40, 79);
+
+  // Layer 2: what the JSON dataset says about that label
+  fill(150, 255, 180); text("DATASET SAYS", 40, 110);
+  if (jsonError) {
+    fill(255, 120, 120); text("JSON failed to load", 40, 132);
+  } else if (!jsonLoaded) {
+    fill(255, 220, 120); text("JSON loading...", 40, 132);
+  } else if (currentRecord) {
     fill(255);
-    text("Category: " + currentRecord.workshopCategory + "  " + currentRecord.emoji, 40, 130);
+    text("WordNet parent: " + currentRecord.wordnetParent, 40, 132);
+    text("Category: " + currentRecord.workshopCategory, 40, 154);
   } else {
-    fill(255, 150, 150);
-    text("No match: Unknown ❓", 40, 130);
+    fill(255, 120, 120);
+    text("No matching record: Unknown", 40, 132);
   }
+
+  // Layer 3: what my sketch turns it into
+  fill(255, 200, 120); text("SKETCH SAYS", 40, 185);
+  fill(255); textSize(28);
+  text(currentRecord ? currentRecord.emoji : "❓", 40, 205);
+}
+
+// Visual response: confidence controls size and steadiness
+function drawMainEmoji() {
+  let emoji = currentRecord ? currentRecord.emoji : "❓";
+  let size = map(currentConfidence, 0, 1, 60, 320);   // more confident = bigger
+  let shake = map(currentConfidence, 0, 1, 15, 0);    // less confident = shakier
+
+  push();
+  translate(width / 2 + random(-shake, shake), height / 2 + random(-shake, shake));
+  textAlign(CENTER, CENTER);
+  textSize(size);
+  text(emoji, 0, 0);
+  if (!currentRecord) {                               // keep the failure visible
+    noFill(); stroke(255, 80, 80); strokeWeight(4);
+    circle(0, 0, size * 1.3);
+  }
+  pop();
 }
 
 function gotResults(results) {
